@@ -1,3 +1,7 @@
+""" notes:
+- remember to use barrier between gates to avoid optimization combining them to one gate
+"""
+
 from unicodedata import name
 from qiskit import *
 from qiskit import Aer, transpile
