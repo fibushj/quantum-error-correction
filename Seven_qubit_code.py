@@ -183,11 +183,13 @@ qc_3qx.append(stab3X, [0, 2, 4, 6, 10])
 qc_3qx.append(stab2X, [1, 2, 5, 6, 11])
 qc_3qx.append(stab1X, [3, 4, 5, 6, 12])  ##Stab X goes in ancZ and then crZ
 
+qc_3qx.draw('mpl',scale=0.5)
+plt.show()
 for i in range(7, 10):
     qc_3qx.h(i)
 qc_3qx.barrier()
 # Measure the ancilla results
-qc_3qx.measure(ancX[1], crX[1])
+qc_3qx.measure(ancX[0], crX[0])
 qc_3qx.measure(ancX[1], crX[1])
 qc_3qx.measure(ancX[2], crX[2])
 
@@ -197,8 +199,8 @@ qc_3qx.measure(ancZ[2], crZ[2])
 qc_3qx.barrier()
 
 #### Uncomment these lines to see the ancilla values
-# qc_3qx.draw('mpl',scale=0.5)
-# plt.show()
+qc_3qx.draw('mpl',scale=0.5)
+plt.show()
 # counts=execute(qc_3qx, aer_sim, shots=10000).result().get_counts()
 # plot_histogram(counts)
 # plt.show()
@@ -240,7 +242,7 @@ counts = execute(qc_3qx, backend=aer_sim, noise_model=get_noise(0.1), shots=1000
 fig = plot_histogram(counts)
 ax = fig.axes[0]
 ax.set_xticklabels(ax.get_xticklabels(), fontsize='7')
-# fig.savefig('output.png') # Or whatever you doing to output the image
+fig.savefig('output.png') # Or whatever you doing to output the image
 # plot_histogram(counts,number_to_keep=10, sort='value_desc')
 print(counts)
 plt.show()
