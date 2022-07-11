@@ -113,8 +113,8 @@ def main():
     quantum_circuit.append(stab2X, [1, 2, 5, 6, 11])
     quantum_circuit.append(stab1X, [3, 4, 5, 6, 12])  ##Stab X goes in ancZ and then crZ
 
-    quantum_circuit.draw('mpl', scale=0.5)
-    plt.show()
+    #quantum_circuit.draw('mpl', scale=0.5)
+    # plt.show()
     for i in range(7, 10):
         quantum_circuit.h(i)
     quantum_circuit.barrier()
@@ -129,8 +129,8 @@ def main():
     quantum_circuit.barrier()
 
     #### Uncomment these lines to see the ancilla values
-    quantum_circuit.draw('mpl', scale=0.5)
-    plt.show()
+    # quantum_circuit.draw('mpl', scale=0.5)
+    # plt.show()
     # counts=execute(quantum_circuit, aer_sim, shots=10000).result().get_counts()
     # plot_histogram(counts)
     # plt.show()
@@ -166,12 +166,14 @@ def main():
     # ###
     # # Simulation
     # ###
-    # #quantum_circuit.draw('mpl',scale=0.5)
+    quantum_circuit.draw('mpl',scale=2, style={'backgroundcolor': '#EEEEEE'})
+    plt.savefig("circuit.png")
+    # plt.show()
     counts = execute(quantum_circuit, backend=aer_sim, noise_model=get_noise(0.1), shots=10000).result().get_counts()
     fig = plot_histogram(counts)
     ax = fig.axes[0]
     ax.set_xticklabels(ax.get_xticklabels(), fontsize='7')
-    fig.savefig('output.png')  # Or whatever you doing to output the image
+    fig.savefig('measurements.png')  # Or whatever you doing to output the image
     # plot_histogram(counts,number_to_keep=10, sort='value_desc')
     print(counts)
     plt.show()
