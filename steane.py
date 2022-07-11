@@ -133,63 +133,6 @@ print('Output state vector: ', result.get_statevector())
 counts = result.get_counts()
 plot_histogram(counts)
 
-# #### Running Circuit 2
-#
-# In the above cell I displayed the output state and measurement statistics of **one instance** of Circuit 2. Since there are multiple possible ways in which the error can manifest in this circuit, it would make more sense to look at the fidelity of the circuit.
-#
-# Fidelity is a measure of "how close" two quantum states are. For the pure state $|\psi\rangle$, that is the output of the error-prone circuit, and $|\phi\rangle$ that is the output of the error-free circuit, the fidelity is calculated as:
-# $$ F = |\langle \psi | \phi \rangle |^2 $$
-#
-# We can measure the average fidelity by doing the above calculation for multiple instances of Circuit 2.
-
-# In[24]:
-
-
-N = 250  # Number of noisy circuits to generate
-
-# Expected state vector
-phi = np.array([(1.0 + 0.0j) / np.sqrt(2), 0.0j, 0.0j, (1.0 + 0.0j) / np.sqrt(2)])
-
-# Different values of p we'll simulate
-probs = np.linspace(0, 0.5, 20)
-
-# Holds the measured fidelity values
-F = []
-
-for prob in probs:
-    fidelities = []
-    for i in range(N):
-        qc = genCircuit2(prob)
-        psi = execute(qc, sv_sim).result().get_statevector()
-
-        fidelities.append(np.abs(np.vdot(psi, phi)) ** 2)
-    F.append(np.average(fidelities))
-
-# Given that they occur immediately after the Hadamard gate, the $X$ and $Z$ errors can only map the output onto one of the Bell states. The inner product $\langle\phi|\psi\rangle = 1$ if $|\psi\rangle=|\beta_{00}\rangle$, and $0$ otherwise and the fidelities take on the same values.
-#
-# The errors that keep the output $|\beta_{00}\rangle$ are: $I_1I_2, I_1Z_2, X_1I_2,$ and $X_1Z_2 $ and so the expected fidelity for Circuit 2 can be calculated:
-# $$ F = (1-2p)^2 + (1-2p)p + p(1-2p) + p^2 = 1 - 2p + p^2 $$
-
-# In[ ]:
-
-
-expected = 1 - 2 * probs + probs ** 2
-
-fig = plt.figure(figsize=(12, 6))
-
-plt.title('Fidelity for Circuit 2')
-
-plt.plot(probs, F, label='Measured')
-plt.plot(probs, expected, label='Exptected')
-
-plt.xlabel('p')
-plt.ylabel('Fidelity')
-
-plt.ylim([0, 1.05])
-
-plt.legend()
-
-
 # ### 3. Error Correcting Code
 #
 # I'll be using the Steane 7-qubit code to do error correction because it can correct any arbitrary single-qubit error and the logical Hadamard and CNOT gates are very easy to implement in this error correction scheme.
@@ -287,8 +230,8 @@ def error_correction(qc, x_ancillas, z_ancillas, logical_qubit, x_syndrome, z_sy
 
     # Initialize the ancillas to |0>
     for i in range(3):
-        qc.initialize([1, 0], x_ancillas[i])
-        qc.initialize([1, 0], z_ancillas[i])
+        qc.initialize([1, 0], [x_ancillas[i]])
+        qc.initialize([1, 0], [z_ancillas[i]])
 
     # Apply Hadamard to the ancillas
     qc.h(x_ancillas)
@@ -334,6 +277,8 @@ z_syn = ClassicalRegister(3)
 qc = QuantumCircuit(x_anc, z_anc, lq, x_syn, z_syn)
 error_correction(qc, x_anc, z_anc, lq, x_syn, z_syn)
 
+qc.draw('mpl', scale=0.5)
+plt.show()
 result = execute(qc, sv_sim).result()
 sv = result.get_statevector()
 

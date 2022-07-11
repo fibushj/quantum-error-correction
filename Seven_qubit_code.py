@@ -226,9 +226,9 @@ for i in range(0, 7):
 # # Decoding
 # #####
 qc_3qx.append(Encoding7().inverse(), all_qubits)
-cr3 = ClassicalRegister(7, 'outcomes')
+cr3 = ClassicalRegister(1, 'outcomes')
 qc_3qx.add_register(cr3)
-qc_3qx.measure(all_qubits, cr3)
+qc_3qx.measure(all_qubits[0], cr3)
 # qc_3qx.draw('mpl')
 # # counts=execute(qc_3qx, aer_sim, shots=10000).result().get_counts()
 # # plot_histogram(counts)
