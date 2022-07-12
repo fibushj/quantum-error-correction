@@ -46,20 +46,10 @@ def generate_circuit():
     initialize_first_qubit_to_state(quantum_circuit)
     encode_to_logical_qubit(all_qubits, quantum_circuit)
     quantum_circuit.barrier()
-    ####
-    # Attaching unitary identity gates (faulty gates)
-    ####
 
     perform_some_computations(all_qubits, quantum_circuit)
 
-
-    quantum_circuit.barrier()
-    for i in range(7, 10):
-        quantum_circuit.h(i)
-    append_stabilizers(quantum_circuit)
-    quantum_circuit.barrier()
-    for i in range(7, 10):
-        quantum_circuit.h(i)
+    append_stabilizers_logic(quantum_circuit)
 
     measure_ancillas(ancillas_x, ancillas_z, classical_register_x, classical_register_z, quantum_circuit)
     # Correction
@@ -69,6 +59,16 @@ def generate_circuit():
 
     quantum_circuit.measure(all_qubits[0], original_qubit_final_outcome)
     return quantum_circuit
+
+
+def append_stabilizers_logic(quantum_circuit):
+    quantum_circuit.barrier()
+    for i in range(7, 10):
+        quantum_circuit.h(i)
+    append_stabilizers(quantum_circuit)
+    quantum_circuit.barrier()
+    for i in range(7, 10):
+        quantum_circuit.h(i)
 
 
 def perform_some_computations(all_qubits, quantum_circuit):
