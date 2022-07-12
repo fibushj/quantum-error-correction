@@ -40,6 +40,9 @@ def draw_circuit(quantum_circuit):
 def generate_circuit():
     all_qubits = range(7)
     quantum_circuit = QuantumCircuit(7)
+    ancillas_x, ancillas_z, classical_register_x, classical_register_z, original_qubit_final_outcome = define_ancillas_and_classical_registers(
+        quantum_circuit)
+
     initialize_first_qubit_to_state(quantum_circuit)
     encode_to_logical_qubit(all_qubits, quantum_circuit)
     quantum_circuit.barrier()
@@ -47,18 +50,17 @@ def generate_circuit():
     # Attaching unitary identity gates (faulty gates)
     ####
 
-    ancillas_x, ancillas_z, classical_register_x, classical_register_z, original_qubit_final_outcome = add_ancillas_and_classical_registers(
-        quantum_circuit)
-
     perform_some_computations(all_qubits, quantum_circuit)
 
+
+    quantum_circuit.barrier()
     for i in range(7, 10):
         quantum_circuit.h(i)
     append_stabilizers(quantum_circuit)
+    quantum_circuit.barrier()
     for i in range(7, 10):
         quantum_circuit.h(i)
 
-    quantum_circuit.barrier()
     measure_ancillas(ancillas_x, ancillas_z, classical_register_x, classical_register_z, quantum_circuit)
     # Correction
     quantum_circuit.barrier()
@@ -80,7 +82,7 @@ def perform_some_computations(all_qubits, quantum_circuit):
     quantum_circuit.barrier()
 
 
-def add_ancillas_and_classical_registers(quantum_circuit):
+def define_ancillas_and_classical_registers(quantum_circuit):
     ancillas_x = QuantumRegister(3, 'ancillas_x')
     ancillas_z = QuantumRegister(3, 'ancillas_z')
     quantum_circuit.add_register(ancillas_x)
