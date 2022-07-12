@@ -1,7 +1,3 @@
-""" notes:
-- remember to use barrier between gates to avoid optimization combining them to one gate
-"""
-
 from unicodedata import name
 from qiskit import *
 from qiskit import Aer, transpile
@@ -26,6 +22,7 @@ import qiskit.quantum_info as qi
 
 def main():
 
+    print(PRINT_MESSAGE)
 
     aer_sim = Aer.get_backend('aer_simulator')
     sv_sim = Aer.get_backend('statevector_simulator')
@@ -41,15 +38,13 @@ def main():
     ident3 = qi.Operator(np.identity(2 ** 7))
     quantum_error_1.unitary(ident3, all_qubits, label='error')
     quantum_error_2.unitary(ident3, all_qubits, label='error2')
-    #######
-    # Create the quantum circuit with the initial state
-    #######
-    quantum_circuit = QuantumCircuit(7)
-    initialize_qubit_to_state(quantum_circuit)
 
-    quantum_circuit.barrier()
+    quantum_circuit = QuantumCircuit(7)
+    initialize_first_qubit_to_state(quantum_circuit)
+
 
     quantum_circuit.append(Encoding7(), all_qubits)
+    quantum_circuit.barrier()
 
     ####
     # Attaching unitary identity gates (faulty gates)
@@ -58,93 +53,38 @@ def main():
     quantum_circuit.append(quantum_error_2, all_qubits)
     quantum_circuit.barrier()
 
-    ######
-    # Measurement just after the noise, to se the effect of the noise
-    # uncomment these lines
-    # #######
-
-    # counts = measurement7(quantum_circuit, 7, noise_model=get_noise(0.01))
-    # plot_histogram(counts)
-    # plt.show()
-
-    #######
-    # Ancilla register:
-    # AncX to correct X errors
-    # AncZ to correct Z errors
-    #######
-    ancX = QuantumRegister(3, 'anc_X')  ### Ancilla qubit
-    quantum_circuit.add_register(ancX)
-    ancZ = QuantumRegister(3, 'anc_Z')  ### Ancilla qubit
-    quantum_circuit.add_register(ancZ)
+    ancillas_x = QuantumRegister(3, 'ancillas_x')
+    quantum_circuit.add_register(ancillas_x)
+    ancillas_z = QuantumRegister(3, 'ancillas_z')
+    quantum_circuit.add_register(ancillas_z)
     for i in range(7, 10):
         quantum_circuit.h(i)
-    crX = ClassicalRegister(3, 'synd_X')  ### Classical register for syndrome extraction
-    crZ = ClassicalRegister(3, 'synd_Z')  ### Classical register for syndrome extraction
-    quantum_circuit.add_register(crX)
-    quantum_circuit.add_register(crZ)
+    classical_register_x = ClassicalRegister(3, 'synd_X')
+    classical_register_z = ClassicalRegister(3, 'synd_Z')
+    quantum_circuit.add_register(classical_register_x)
+    quantum_circuit.add_register(classical_register_z)
 
-    #####
-    # Create the stabilizer
-    #####
-    stab1Z = QuantumCircuit(5, name='M1')  # IIIZZZZ
-    for i in range(0, stab1Z.num_qubits - 1):
-        stab1Z.cx(i, 4)
-    stab2Z = QuantumCircuit(5, name='M2')  # IZZIIZZ
-    for i in range(0, stab2Z.num_qubits - 1):
-        stab2Z.cx(i, 4)
-    stab3Z = QuantumCircuit(5, name='M3')  # ZIZIZIZ
-    for i in range(0, stab3Z.num_qubits - 1):
-        stab3Z.cx(i, 4)
-    stab1X = QuantumCircuit(5, name='M4')  # IIIXXXX
-    for i in range(0, stab1X.num_qubits - 1):
-        stab1X.cx(4, i)
-    stab2X = QuantumCircuit(5, name='M5')  # IXXIIXX
-    for i in range(0, stab2X.num_qubits - 1):
-        stab2X.cx(4, i)
-    stab3X = QuantumCircuit(5, name='M6')  # XIXIXIX
-    for i in range(0, stab3X.num_qubits - 1):
-        stab3X.cx(4, i)
 
-    quantum_circuit.append(stab1Z, [3, 4, 5, 6, 9])
-    quantum_circuit.append(stab2Z, [1, 2, 5, 6, 8])
-    quantum_circuit.append(stab3Z, [0, 2, 4, 6, 7])  ##Stab Z goes in ancX and then crX
+    append_stabilizers(quantum_circuit)
 
-    quantum_circuit.append(stab3X, [0, 2, 4, 6, 10])
-    quantum_circuit.append(stab2X, [1, 2, 5, 6, 11])
-    quantum_circuit.append(stab1X, [3, 4, 5, 6, 12])  ##Stab X goes in ancZ and then crZ
-
-    #quantum_circuit.draw('mpl', scale=0.5)
-    # plt.show()
     for i in range(7, 10):
         quantum_circuit.h(i)
     quantum_circuit.barrier()
-    # Measure the ancilla results
-    quantum_circuit.measure(ancX[0], crX[0])
-    quantum_circuit.measure(ancX[1], crX[1])
-    quantum_circuit.measure(ancX[2], crX[2])
 
-    quantum_circuit.measure(ancZ[0], crZ[0])
-    quantum_circuit.measure(ancZ[1], crZ[1])
-    quantum_circuit.measure(ancZ[2], crZ[2])
+    quantum_circuit.measure(ancillas_x[0], classical_register_x[0])
+    quantum_circuit.measure(ancillas_x[1], classical_register_x[1])
+    quantum_circuit.measure(ancillas_x[2], classical_register_x[2])
+
+    quantum_circuit.measure(ancillas_z[0], classical_register_z[0])
+    quantum_circuit.measure(ancillas_z[1], classical_register_z[1])
+    quantum_circuit.measure(ancillas_z[2], classical_register_z[2])
     quantum_circuit.barrier()
 
-    #### Uncomment these lines to see the ancilla values
-    # quantum_circuit.draw('mpl', scale=0.5)
-    # plt.show()
-    # counts=execute(quantum_circuit, aer_sim, shots=10000).result().get_counts()
-    # plot_histogram(counts)
-    # plt.show()
-    # counts=execute(quantum_circuit, aer_sim, noise_model= noise_model, shots=10000).result().get_counts()
-    # plot_histogram(counts)
-    # plt.show()
-
-    # ###
-    # #Recovery
-    # ###
+    # Correction
     quantum_circuit.barrier()
     for i in range(0, 7):
-        quantum_circuit.z(i).c_if(crZ, i + 1)
-        quantum_circuit.x(i).c_if(crX, i + 1)
+        quantum_circuit.z(i).c_if(classical_register_z, i + 1)
+        quantum_circuit.x(i).c_if(classical_register_x, i + 1)
     # quantum_circuit.draw('mpl')
     # plt.show()
     # counts=execute(quantum_circuit, aer_sim, noise_model= get_noise(0.1), shots=10000).result().get_counts()
@@ -176,10 +116,37 @@ def main():
     fig.savefig('measurements.png')  # Or whatever you doing to output the image
     # plot_histogram(counts,number_to_keep=10, sort='value_desc')
     print(counts)
-    plt.show()
+    # plt.show()
 
 
-def initialize_qubit_to_state(qc_3qx):
+def append_stabilizers(quantum_circuit):
+    stab1Z = QuantumCircuit(5, name='M1')  # IIIZZZZ
+    for i in range(0, stab1Z.num_qubits - 1):
+        stab1Z.cx(i, 4)
+    stab2Z = QuantumCircuit(5, name='M2')  # IZZIIZZ
+    for i in range(0, stab2Z.num_qubits - 1):
+        stab2Z.cx(i, 4)
+    stab3Z = QuantumCircuit(5, name='M3')  # ZIZIZIZ
+    for i in range(0, stab3Z.num_qubits - 1):
+        stab3Z.cx(i, 4)
+    stab1X = QuantumCircuit(5, name='M4')  # IIIXXXX
+    for i in range(0, stab1X.num_qubits - 1):
+        stab1X.cx(4, i)
+    stab2X = QuantumCircuit(5, name='M5')  # IXXIIXX
+    for i in range(0, stab2X.num_qubits - 1):
+        stab2X.cx(4, i)
+    stab3X = QuantumCircuit(5, name='M6')  # XIXIXIX
+    for i in range(0, stab3X.num_qubits - 1):
+        stab3X.cx(4, i)
+    quantum_circuit.append(stab1Z, [3, 4, 5, 6, 9])
+    quantum_circuit.append(stab2Z, [1, 2, 5, 6, 8])
+    quantum_circuit.append(stab3Z, [0, 2, 4, 6, 7])  ##Stab Z goes in ancillas_x and then classical_register_x
+    quantum_circuit.append(stab3X, [0, 2, 4, 6, 10])
+    quantum_circuit.append(stab2X, [1, 2, 5, 6, 11])
+    quantum_circuit.append(stab1X, [3, 4, 5, 6, 12])  ##Stab X goes in ancillas_z and then classical_register_z
+
+
+def initialize_first_qubit_to_state(qc_3qx):
     initial_state = [1 / np.sqrt(2), 1 / np.sqrt(2)]
     # initial_state = [0,1]
     # qc_3qx.initialize(initial_state, 0)
@@ -248,9 +215,21 @@ def get_noise(p_error):
     # ######
     noise_model = NoiseModel(['unitary'])
     noise_model.add_all_qubit_quantum_error(bit_flip6, 'error')
-    # noise_model.add_all_qubit_quantum_error(phase_flip6, 'error2')
+    noise_model.add_all_qubit_quantum_error(phase_flip6, 'error2')
     return noise_model
 
+PRINT_MESSAGE = """ notes:
+       _               _          _ _  __  __    __             _                                 _ _ _ 
+      | |             | |        | (_)/ _|/ _|  / _|           (_)                               | | | |
+   ___| |__   ___  ___| | __   __| |_| |_| |_  | |_ ___  _ __   _ _ __ ___   __ _  __ _  ___  ___| | | |
+  / __| '_ \ / _ \/ __| |/ /  / _` | |  _|  _| |  _/ _ \| '__| | | '_ ` _ \ / _` |/ _` |/ _ \/ __| | | |
+ | (__| | | |  __/ (__|   <  | (_| | | | | |   | || (_) | |    | | | | | | | (_| | (_| |  __/\__ \_|_|_|
+  \___|_| |_|\___|\___|_|\_\  \__,_|_|_| |_|   |_| \___/|_|    |_|_| |_| |_|\__,_|\__, |\___||___(_|_|_)
+                                                                                   __/ |                
+                                                                                  |___/                 
+- remember to use barrier between gates to avoid optimization combining them to one gate
+
+"""
 
 if __name__ == "__main__":
     main()
