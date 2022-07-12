@@ -12,7 +12,6 @@ def main():
     print(PRINT_MESSAGE)
 
     aer_sim = Aer.get_backend('aer_simulator')
-
     quantum_circuit = generate_circuit()
     draw_circuit(quantum_circuit)
     counts = run_simulation(aer_sim, quantum_circuit)
@@ -52,7 +51,6 @@ def generate_circuit():
     append_stabilizers_logic(quantum_circuit)
 
     measure_ancillas(ancillas_x, ancillas_z, classical_register_x, classical_register_z, quantum_circuit)
-    # Correction
     quantum_circuit.barrier()
     correct_errors(classical_register_x, classical_register_z, quantum_circuit)
     decode_logical_qubit(all_qubits, quantum_circuit)
@@ -153,15 +151,12 @@ def initialize_first_qubit_to_state(qc_3qx):
     # # Initialize the 0th qubit in the state `initial_state`
 
 
-###
-# Encoding
-###
 def Encoding7():
     q_encoding = QuantumCircuit(7, name='Enc')
-    # Hadamards
     q_encoding.h(6)
     q_encoding.h(5)
     q_encoding.h(4)
+
     q_encoding.cx(0, 1)
     q_encoding.cx(0, 2)
     q_encoding.cx(6, 3)
@@ -173,25 +168,11 @@ def Encoding7():
     q_encoding.cx(4, 3)
     q_encoding.cx(4, 2)
     q_encoding.cx(4, 1)
-    # q_encoding.draw('mpl',  filename='Encoding_Seven')
-    # plt.show()
+
     return q_encoding
 
 
-#####
-# Measurement function (Apply it when you want to look at the results)
-#####
-# def measurement7(circ, nqubit, noise_model=NoiseModel(['unitary']), shots=100000):
-#     cr3 = ClassicalRegister(nqubit, 'outcomes')
-#     circ.add_register(cr3)
-#     circ.measure(all_qubits, cr3)
-#     counts = execute(qc_3qx, backend=aer_sim, noise_model=noise_model, shots=shots).result().get_counts()
-#     return counts
 
-
-# #####
-# #Create the error model
-# #####
 def get_noise(p_error):
     # Bit flip error
     bit_flip = pauli_error([('X', p_error), ('I', 1 - p_error)])
