@@ -38,45 +38,64 @@ def draw_circuit(quantum_circuit):
 
 
 def generate_circuit():
-    all_qubits = [0, 1, 2, 3, 4, 5, 6]
-    quantum_error_1 = QuantumCircuit(7, name='error')
-    quantum_error_2 = QuantumCircuit(7, name='error2')
-    ident3 = qi.Operator(np.identity(2 ** 7))
-    quantum_error_1.unitary(ident3, all_qubits, label='error')
-    quantum_error_2.unitary(ident3, all_qubits, label='error2')
+    all_qubits = range(7)
     quantum_circuit = QuantumCircuit(7)
     initialize_first_qubit_to_state(quantum_circuit)
-    quantum_circuit.append(Encoding7(), all_qubits)
+    encode_to_logical_qubit(all_qubits, quantum_circuit)
     quantum_circuit.barrier()
     ####
     # Attaching unitary identity gates (faulty gates)
     ####
-    quantum_circuit.append(quantum_error_1, all_qubits)
-    quantum_circuit.append(quantum_error_2, all_qubits)
-    quantum_circuit.barrier()
-    ancillas_x = QuantumRegister(3, 'ancillas_x')
-    ancillas_z = QuantumRegister(3, 'ancillas_z')
-    quantum_circuit.add_register(ancillas_x)
-    quantum_circuit.add_register(ancillas_z)
-    classical_register_x = ClassicalRegister(3, 'synd_X')
-    classical_register_z = ClassicalRegister(3, 'synd_Z')
-    quantum_circuit.add_register(classical_register_x)
-    quantum_circuit.add_register(classical_register_z)
+
+    ancillas_x, ancillas_z, classical_register_x, classical_register_z, original_qubit_final_outcome = add_ancillas_and_classical_registers(
+        quantum_circuit)
+
+    perform_some_computations(all_qubits, quantum_circuit)
+
     for i in range(7, 10):
         quantum_circuit.h(i)
     append_stabilizers(quantum_circuit)
     for i in range(7, 10):
         quantum_circuit.h(i)
+
     quantum_circuit.barrier()
     measure_ancillas(ancillas_x, ancillas_z, classical_register_x, classical_register_z, quantum_circuit)
     # Correction
     quantum_circuit.barrier()
     correct_errors(classical_register_x, classical_register_z, quantum_circuit)
     decode_logical_qubit(all_qubits, quantum_circuit)
-    original_qubit_outcome = ClassicalRegister(1, 'outcome')
-    quantum_circuit.add_register(original_qubit_outcome)
-    quantum_circuit.measure(all_qubits[0], original_qubit_outcome)
+
+    quantum_circuit.measure(all_qubits[0], original_qubit_final_outcome)
     return quantum_circuit
+
+
+def perform_some_computations(all_qubits, quantum_circuit):
+    quantum_error_1 = QuantumCircuit(7, name='error')
+    quantum_error_2 = QuantumCircuit(7, name='error2')
+    ident3 = qi.Operator(np.identity(2 ** 7))
+    quantum_error_1.unitary(ident3, all_qubits, label='error')
+    quantum_error_2.unitary(ident3, all_qubits, label='error2')
+    quantum_circuit.append(quantum_error_1, all_qubits)
+    quantum_circuit.append(quantum_error_2, all_qubits)
+    quantum_circuit.barrier()
+
+
+def add_ancillas_and_classical_registers(quantum_circuit):
+    ancillas_x = QuantumRegister(3, 'ancillas_x')
+    ancillas_z = QuantumRegister(3, 'ancillas_z')
+    quantum_circuit.add_register(ancillas_x)
+    quantum_circuit.add_register(ancillas_z)
+    classical_register_x = ClassicalRegister(3, 'synd_X')
+    classical_register_z = ClassicalRegister(3, 'synd_Z')
+    original_qubit_final_outcome = ClassicalRegister(1, 'outcome')
+    quantum_circuit.add_register(classical_register_x)
+    quantum_circuit.add_register(classical_register_z)
+    quantum_circuit.add_register(original_qubit_final_outcome)
+    return ancillas_x, ancillas_z, classical_register_x, classical_register_z, original_qubit_final_outcome
+
+
+def encode_to_logical_qubit(all_qubits, quantum_circuit):
+    quantum_circuit.append(Encoding7(), all_qubits)
 
 
 def decode_logical_qubit(all_qubits, quantum_circuit):
