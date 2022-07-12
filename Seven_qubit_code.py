@@ -1,122 +1,101 @@
-from unicodedata import name
-from qiskit import *
-from qiskit import Aer, transpile
-from qiskit.providers.aer import AerSimulator
-from qiskit.quantum_info.operators.symplectic.pauli import Pauli
-from qiskit.visualization import plot_histogram, plot_state_paulivec, plot_state_hinton
-from qiskit.visualization import plot_state_qsphere, plot_bloch_vector, plot_state_city, plot_bloch_multivector
 from qiskit import QuantumRegister, ClassicalRegister, QuantumCircuit
-from qiskit.tools.visualization import circuit_drawer
-from qiskit.tools.monitor import job_monitor
-from qiskit.providers.basicaer import QasmSimulatorPy
-from qiskit import assemble
-from qiskit.quantum_info import Statevector, partial_trace
 from qiskit import QuantumCircuit, execute, Aer
 from qiskit.visualization import plot_histogram
-import qiskit.providers.aer.noise as noise
 from qiskit.providers.aer.noise.errors import pauli_error, depolarizing_error
 import numpy as np
 import matplotlib.pyplot as plt
 from qiskit.providers.aer.noise import NoiseModel
 import qiskit.quantum_info as qi
 
-def main():
 
+def main():
     print(PRINT_MESSAGE)
 
     aer_sim = Aer.get_backend('aer_simulator')
-    sv_sim = Aer.get_backend('statevector_simulator')
-    # result = execute(quantum_circuit, sv_sim).result()
-    # sv = result.get_statevector()
 
-    ######
-    # Create a custum gate that is affected by error
-    ######
+    quantum_circuit = generate_circuit()
+    draw_circuit(quantum_circuit)
+    counts = run_simulation(aer_sim, quantum_circuit)
+    report_results(counts)
+
+
+def report_results(counts):
+    fig = plot_histogram(counts)
+    ax = fig.axes[0]
+    ax.set_xticklabels(ax.get_xticklabels(), fontsize='7')
+    fig.savefig('measurements.png')
+    print(counts)
+
+
+def run_simulation(aer_sim, quantum_circuit):
+    counts = execute(quantum_circuit, backend=aer_sim, noise_model=get_noise(0.1), shots=10000).result().get_counts()
+    return counts
+
+
+def draw_circuit(quantum_circuit):
+    quantum_circuit.draw('mpl', scale=2, style={'backgroundcolor': '#EEEEEE'})
+    plt.savefig("circuit.png")
+
+
+def generate_circuit():
     all_qubits = [0, 1, 2, 3, 4, 5, 6]
     quantum_error_1 = QuantumCircuit(7, name='error')
     quantum_error_2 = QuantumCircuit(7, name='error2')
     ident3 = qi.Operator(np.identity(2 ** 7))
     quantum_error_1.unitary(ident3, all_qubits, label='error')
     quantum_error_2.unitary(ident3, all_qubits, label='error2')
-
     quantum_circuit = QuantumCircuit(7)
     initialize_first_qubit_to_state(quantum_circuit)
-
-
     quantum_circuit.append(Encoding7(), all_qubits)
     quantum_circuit.barrier()
-
     ####
     # Attaching unitary identity gates (faulty gates)
     ####
     quantum_circuit.append(quantum_error_1, all_qubits)
     quantum_circuit.append(quantum_error_2, all_qubits)
     quantum_circuit.barrier()
-
     ancillas_x = QuantumRegister(3, 'ancillas_x')
-    quantum_circuit.add_register(ancillas_x)
     ancillas_z = QuantumRegister(3, 'ancillas_z')
+    quantum_circuit.add_register(ancillas_x)
     quantum_circuit.add_register(ancillas_z)
-    for i in range(7, 10):
-        quantum_circuit.h(i)
     classical_register_x = ClassicalRegister(3, 'synd_X')
     classical_register_z = ClassicalRegister(3, 'synd_Z')
     quantum_circuit.add_register(classical_register_x)
     quantum_circuit.add_register(classical_register_z)
-
-
+    for i in range(7, 10):
+        quantum_circuit.h(i)
     append_stabilizers(quantum_circuit)
-
     for i in range(7, 10):
         quantum_circuit.h(i)
     quantum_circuit.barrier()
-
-    quantum_circuit.measure(ancillas_x[0], classical_register_x[0])
-    quantum_circuit.measure(ancillas_x[1], classical_register_x[1])
-    quantum_circuit.measure(ancillas_x[2], classical_register_x[2])
-
-    quantum_circuit.measure(ancillas_z[0], classical_register_z[0])
-    quantum_circuit.measure(ancillas_z[1], classical_register_z[1])
-    quantum_circuit.measure(ancillas_z[2], classical_register_z[2])
-    quantum_circuit.barrier()
-
+    measure_ancillas(ancillas_x, ancillas_z, classical_register_x, classical_register_z, quantum_circuit)
     # Correction
     quantum_circuit.barrier()
+    correct_errors(classical_register_x, classical_register_z, quantum_circuit)
+    decode_logical_qubit(all_qubits, quantum_circuit)
+    original_qubit_outcome = ClassicalRegister(1, 'outcome')
+    quantum_circuit.add_register(original_qubit_outcome)
+    quantum_circuit.measure(all_qubits[0], original_qubit_outcome)
+    return quantum_circuit
+
+
+def decode_logical_qubit(all_qubits, quantum_circuit):
+    quantum_circuit.append(Encoding7().inverse(), all_qubits)
+
+
+def correct_errors(classical_register_x, classical_register_z, quantum_circuit):
     for i in range(0, 7):
         quantum_circuit.z(i).c_if(classical_register_z, i + 1)
         quantum_circuit.x(i).c_if(classical_register_x, i + 1)
-    # quantum_circuit.draw('mpl')
-    # plt.show()
-    # counts=execute(quantum_circuit, aer_sim, noise_model= get_noise(0.1), shots=10000).result().get_counts()
-    # plot_histogram(counts)
-    # plt.show()
 
-    # #####
-    # # Decoding
-    # #####
-    quantum_circuit.append(Encoding7().inverse(), all_qubits)
-    cr3 = ClassicalRegister(1, 'outcomes')
-    quantum_circuit.add_register(cr3)
-    quantum_circuit.measure(all_qubits[0], cr3)
-    # quantum_circuit.draw('mpl')
-    # # counts=execute(quantum_circuit, aer_sim, shots=10000).result().get_counts()
-    # # plot_histogram(counts)
-    # plt.show()
 
-    # ###
-    # # Simulation
-    # ###
-    quantum_circuit.draw('mpl',scale=2, style={'backgroundcolor': '#EEEEEE'})
-    plt.savefig("circuit.png")
-    # plt.show()
-    counts = execute(quantum_circuit, backend=aer_sim, noise_model=get_noise(0.1), shots=10000).result().get_counts()
-    fig = plot_histogram(counts)
-    ax = fig.axes[0]
-    ax.set_xticklabels(ax.get_xticklabels(), fontsize='7')
-    fig.savefig('measurements.png')  # Or whatever you doing to output the image
-    # plot_histogram(counts,number_to_keep=10, sort='value_desc')
-    print(counts)
-    # plt.show()
+def measure_ancillas(ancillas_x, ancillas_z, classical_register_x, classical_register_z, quantum_circuit):
+    quantum_circuit.measure(ancillas_x[0], classical_register_x[0])
+    quantum_circuit.measure(ancillas_x[1], classical_register_x[1])
+    quantum_circuit.measure(ancillas_x[2], classical_register_x[2])
+    quantum_circuit.measure(ancillas_z[0], classical_register_z[0])
+    quantum_circuit.measure(ancillas_z[1], classical_register_z[1])
+    quantum_circuit.measure(ancillas_z[2], classical_register_z[2])
 
 
 def append_stabilizers(quantum_circuit):
@@ -177,6 +156,7 @@ def Encoding7():
     # plt.show()
     return q_encoding
 
+
 #####
 # Measurement function (Apply it when you want to look at the results)
 #####
@@ -217,6 +197,7 @@ def get_noise(p_error):
     noise_model.add_all_qubit_quantum_error(bit_flip6, 'error')
     noise_model.add_all_qubit_quantum_error(phase_flip6, 'error2')
     return noise_model
+
 
 PRINT_MESSAGE = """ notes:
        _               _          _ _  __  __    __             _                                 _ _ _ 
