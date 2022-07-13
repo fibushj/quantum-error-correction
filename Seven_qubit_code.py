@@ -14,8 +14,13 @@ def main():
     aer_sim = Aer.get_backend('aer_simulator')
     quantum_circuit = generate_circuit()
     draw_circuit(quantum_circuit)
-    counts = run_simulation(aer_sim, quantum_circuit)
+    noise_model = create_noise_model()
+    counts = run_simulation(aer_sim, quantum_circuit, noise_model)
     report_results(counts)
+
+
+def create_noise_model():
+    return get_noise(0.1)
 
 
 def report_results(counts):
@@ -26,8 +31,8 @@ def report_results(counts):
     print(counts)
 
 
-def run_simulation(aer_sim, quantum_circuit):
-    counts = execute(quantum_circuit, backend=aer_sim, noise_model=get_noise(0.1), shots=10000).result().get_counts()
+def run_simulation(aer_sim, quantum_circuit, noise_model):
+    counts = execute(quantum_circuit, backend=aer_sim, noise_model=noise_model, shots=10000).result().get_counts()
     return counts
 
 
