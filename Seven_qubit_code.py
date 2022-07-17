@@ -9,13 +9,17 @@ import qiskit.quantum_info as qi
 
 
 def main():
-    print(PRINT_MESSAGE)
 
     aer_sim = Aer.get_backend('aer_simulator')
     quantum_circuit = generate_circuit()
-    draw_circuit(quantum_circuit)
     noise_model = create_noise_model()
-    counts = run_simulation(aer_sim, quantum_circuit, noise_model)
+
+    run(quantum_circuit, noise_model, aer_sim)
+
+
+def run(quantum_circuit, noise_model, aer_sim):
+    draw_circuit(quantum_circuit)
+    counts = run_simulations_for_circuit(aer_sim, quantum_circuit, noise_model)
     report_results(counts)
 
 
@@ -31,7 +35,7 @@ def report_results(counts):
     print(counts)
 
 
-def run_simulation(aer_sim, quantum_circuit, noise_model):
+def run_simulations_for_circuit(aer_sim, quantum_circuit, noise_model):
     counts = execute(quantum_circuit, backend=aer_sim, noise_model=noise_model, shots=10000).result().get_counts()
     return counts
 
@@ -220,4 +224,5 @@ PRINT_MESSAGE = """ notes:
 """
 
 if __name__ == "__main__":
+    print(PRINT_MESSAGE)
     main()
