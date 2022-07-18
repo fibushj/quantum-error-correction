@@ -24,6 +24,11 @@ def run(quantum_circuit, noise_model, aer_sim):
 
 
 def create_noise_model():
+    noise_model = NoiseModel()
+    error = depolarizing_error(0.5, 1)
+    noise_model.add_all_qubit_quantum_error(error, 'error')
+    print(noise_model)
+    return noise_model
     return get_noise(0.1)
 
 
@@ -80,12 +85,9 @@ def append_stabilizers_logic(quantum_circuit):
 
 def perform_some_computations(all_qubits, quantum_circuit):
     quantum_error_1 = QuantumCircuit(7, name='error')
-    quantum_error_2 = QuantumCircuit(7, name='error2')
     ident3 = qi.Operator(np.identity(2 ** 7))
     quantum_error_1.unitary(ident3, all_qubits, label='error')
-    quantum_error_2.unitary(ident3, all_qubits, label='error2')
     quantum_circuit.append(quantum_error_1, all_qubits)
-    quantum_circuit.append(quantum_error_2, all_qubits)
     quantum_circuit.barrier()
 
 
