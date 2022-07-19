@@ -84,10 +84,10 @@ def append_stabilizers_logic(quantum_circuit):
 
 
 def perform_some_computations(all_qubits, quantum_circuit):
-    quantum_error_1 = QuantumCircuit(7, name='error')
-    ident3 = qi.Operator(np.identity(2 ** 7))
-    quantum_error_1.unitary(ident3, all_qubits, label='error')
-    quantum_circuit.append(quantum_error_1, all_qubits)
+    identity_operator = qi.Operator(np.identity(2 ** 7))
+    identity_gate = QuantumCircuit(7, name='error')
+    identity_gate.unitary(identity_operator, all_qubits, label='error')
+    quantum_circuit.append(identity_gate, all_qubits)
     quantum_circuit.barrier()
 
 
@@ -156,9 +156,9 @@ def append_stabilizers(quantum_circuit):
 
 
 def initialize_first_qubit_to_state(qc_3qx):
-    initial_state = [1 / np.sqrt(2), 1 / np.sqrt(2)]
-    # initial_state = [0,1]
-    # qc_3qx.initialize(initial_state, 0)
+    # initial_state = [1 / np.sqrt(2), 1 / np.sqrt(2)]
+    initial_state = [1,0]
+    qc_3qx.initialize(initial_state, 0)
     # # Initialize the 0th qubit in the state `initial_state`
 
 
