@@ -27,9 +27,7 @@ def create_noise_model():
     noise_model = NoiseModel()
     error = depolarizing_error(0.5, 1)
     noise_model.add_all_qubit_quantum_error(error, 'error')
-    print(noise_model)
     return noise_model
-    return get_noise(0.1)
 
 
 def report_results(counts):
